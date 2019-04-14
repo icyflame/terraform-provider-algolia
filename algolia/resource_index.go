@@ -2,9 +2,10 @@ package algolia
 
 import (
 	"fmt"
-	"log"
+	"io/ioutil"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/algolia/algoliasearch-client-go/algoliasearch"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -347,11 +348,20 @@ func importAlgoliaState(d *schema.ResourceData, m interface{}) ([]*schema.Resour
 	index := client.InitIndex(d.Id())
 	settings, err := index.GetSettings()
 	if err != nil {
-		log.Printf("Found an error: %+v", err)
 		return nil, fmt.Errorf("Unable to import index %s; error: %v", d.Id(), err)
 	}
 
 	readResourceFromSettings(d, settings)
+
+	// Generate the configuration for this resource in terraform.  If you run the included script,
+	// then you can generate something that is very close to the terraform configuration
+	state := d.State()
+
+	ioutil.WriteFile(
+		fmt.Sprintf("state.%s.%d", d.Id(), time.Now().Unix()),
+		[]byte(state.String()), 0644,
+	)
+
 	return []*schema.ResourceData{d}, nil
 }
 
