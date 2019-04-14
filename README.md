@@ -34,4 +34,10 @@ The import must be performed in two steps:
     inspect the file to ensure that the types of all the variables is
     appropriate. (Arrays might not be printed with commas or the proper type)
 
+## Running with DEBUG output
+
+```sh
+$ TF_LOG=DEBUG terraform refresh
+```
+
 [1]: https://github.com/bpicolo/terraform-provider-algolia
