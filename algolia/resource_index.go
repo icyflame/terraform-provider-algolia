@@ -2,6 +2,7 @@ package algolia
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 
@@ -19,7 +20,7 @@ func resourceIndex() *schema.Resource {
 		Delete: resourceIndexDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: importAlgoliaState,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -339,6 +340,19 @@ func readResourceFromSettings(d *schema.ResourceData, s algoliasearch.Settings) 
 	d.Set("sort_facets_values_by", s.SortFacetValuesBy)
 	d.Set("typo_tolerance", s.TypoTolerance)
 	d.Set("unretrievable_attributes", s.UnretrievableAttributes)
+}
+
+func importAlgoliaState(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	client := *m.(*algoliasearch.Client)
+	index := client.InitIndex(d.Id())
+	settings, err := index.GetSettings()
+	if err != nil {
+		log.Printf("Found an error: %+v", err)
+		return nil, fmt.Errorf("Unable to import index %s; error: %v", d.Id(), err)
+	}
+
+	readResourceFromSettings(d, settings)
+	return []*schema.ResourceData{d}, nil
 }
 
 // Takes an array of interface and casts to string
