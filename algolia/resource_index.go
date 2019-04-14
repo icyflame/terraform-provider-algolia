@@ -1,8 +1,10 @@
 package algolia
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"reflect"
 	"time"
@@ -501,6 +503,7 @@ func resourceIndexCreate(d *schema.ResourceData, m interface{}) error {
 func resourceIndexRead(d *schema.ResourceData, m interface{}) error {
 	client := *m.(*algoliasearch.Client)
 	index := client.InitIndex(d.Id())
+
 	settings, err := index.GetSettings()
 	if err != nil && err.Error() == "{\"message\":\"ObjectID does not exist\",\"status\":404}\n" {
 		d.SetId("")
@@ -508,17 +511,30 @@ func resourceIndexRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	readResourceFromSettings(d, settings)
+
+	prettyJsonBytes, _ := json.MarshalIndent(settings, "", "    ")
+	prettyJson := string(prettyJsonBytes)
+	log.Printf("[INFO] Response from Algolia client for %s: %s\n", d.Id(), prettyJson)
+
 	return nil
 }
 
 func resourceIndexUpdate(d *schema.ResourceData, m interface{}) error {
 	client := *m.(*algoliasearch.Client)
 	index := client.InitIndex(d.Id())
+
 	settings := buildSettingsFromResourceData(d)
-	_, err := index.SetSettings(settingsAsMap(settings))
+	settingsMap := settingsAsMap(settings)
+
+	res, err := index.SetSettings(settingsMap)
 	if err != nil {
 		return fmt.Errorf("Error updating index %s: %v", d.Id(), err)
 	}
+
+	prettyJsonBytes, _ := json.MarshalIndent(settingsMap, "", "    ")
+	prettyJson := string(prettyJsonBytes)
+	log.Printf("[INFO] Settings written to Algolia for %s: %s\n", d.Id(), prettyJson)
+	log.Printf("[INFO] Response from Algolia client for %s: %+v\n", d.Id(), res)
 
 	return nil
 }
